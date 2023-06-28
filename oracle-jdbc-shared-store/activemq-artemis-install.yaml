@@ -1,0 +1,153 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: ext-acceptor-svc
+spec:
+  ports:
+    - protocol: TCP
+      port: 61626
+      targetPort: 61626
+  selector:
+    cluster: jdbc-ha
+  type: ClusterIP
+  sessionAffinity: None
+  publishNotReadyAddresses: true
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+  name: ext-acceptor-svc-ing
+spec:
+  tls:
+    - hosts:
+        - ext-acceptor-svc-ing-default.apps.artemiscloud.io
+  rules:
+    - host: ext-acceptor-svc-ing-default.apps.artemiscloud.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ext-acceptor-svc
+                port:
+                  number: 61626
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: jdbc-ha-ping-svc
+spec:
+  ports:
+    - protocol: TCP
+      port: 8888
+      targetPort: 8888
+  selector:
+    cluster: jdbc-ha
+  clusterIP: None
+  type: ClusterIP
+  sessionAffinity: None
+  publishNotReadyAddresses: true
+---
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata: 
+  name: primary-broker
+spec:
+  deploymentPlan:
+    size: 1
+    persistenceEnabled: true
+    labels:
+      cluster: jdbc-ha
+  env:
+    - name: ARTEMIS_EXTRA_LIBS
+      value: '/opt/primary-broker/data/extra-libs'
+    - name: AMQ_EXTRA_ARGS
+      value: '--shared-store'
+    - name: PING_SVC_NAME
+      value: jdbc-ha-ping-svc    
+  brokerProperties:
+    - 'storeConfiguration=DATABASE'
+    - 'storeConfiguration.jdbcDriverClassName=oracle.jdbc.OracleDriver'
+    - 'storeConfiguration.jdbcConnectionUrl=jdbc:oracle:thin:SYSTEM/secret@oracle-database-service:1521/FREEPDB1'
+    - 'HAPolicyConfiguration.failoverOnServerShutdown=true'
+  acceptors:
+  - name: ext-acceptor
+    protocols: CORE
+    port: 61626
+    expose: true
+    sslEnabled: true
+    sslSecret: ext-acceptor-ssl-secret
+  console:
+    expose: true
+  resourceTemplates:
+    - selector:
+        kind: StatefulSet
+      patch:
+        kind: StatefulSet
+        spec:
+          template:
+            spec:
+              initContainers:
+                - name: oracle-database-jdbc-driver-init
+                  image: quay.io/artemiscloud/activemq-artemis-broker-init:artemis.2.32.0
+                  volumeMounts:
+                    - name: primary-broker
+                      mountPath: /opt/primary-broker/data
+                  command:
+                    - "bash"
+                    - "-c"
+                    - "mkdir -p /opt/primary-broker/data/extra-libs && test -f /opt/primary-broker/data/extra-libs/ojdbc11.jar || curl -Lo /opt/primary-broker/data/extra-libs/ojdbc11.jar https://download.oracle.com/otn-pub/otn_software/jdbc/233/ojdbc11.jar"
+---
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata: 
+  name: backup-broker
+spec:
+  deploymentPlan:
+    size: 1
+    persistenceEnabled: true
+    labels:
+      cluster: jdbc-ha
+  env:
+    - name: ARTEMIS_EXTRA_LIBS
+      value: '/opt/backup-broker/data/extra-libs'
+    - name: AMQ_EXTRA_ARGS
+      value: '--shared-store --backup'
+    - name: PING_SVC_NAME
+      value: jdbc-ha-ping-svc     
+  brokerProperties:
+    - 'storeConfiguration=DATABASE'
+    - 'storeConfiguration.jdbcDriverClassName=oracle.jdbc.OracleDriver'
+    - 'storeConfiguration.jdbcConnectionUrl=jdbc:oracle:thin:SYSTEM/secret@oracle-database-service:1521/FREEPDB1'
+    - 'HAPolicyConfiguration.allowFailBack=true'
+    - 'HAPolicyConfiguration.failoverOnServerShutdown=true'
+  acceptors:
+  - name: ext-acceptor
+    protocols: CORE
+    port: 61626
+    expose: true
+    sslEnabled: true
+    sslSecret: ext-acceptor-ssl-secret
+  console:
+    expose: true
+  resourceTemplates:
+    - selector:
+        kind: StatefulSet
+      patch:
+        kind: StatefulSet
+        spec:
+          template:
+            spec:
+              initContainers:
+                - name: oracle-database-jdbc-driver-init
+                  image: quay.io/artemiscloud/activemq-artemis-broker-init:artemis.2.32.0
+                  volumeMounts:
+                    - name: backup-broker
+                      mountPath: /opt/backup-broker/data
+                  command:
+                    - "bash"
+                    - "-c"
+                    - "mkdir -p /opt/backup-broker/data/extra-libs && test -f /opt/backup-broker/data/extra-libs/ojdbc11.jar || curl -Lo /opt/backup-broker/data/extra-libs/ojdbc11.jar https://download.oracle.com/otn-pub/otn_software/jdbc/233/ojdbc11.jar"
