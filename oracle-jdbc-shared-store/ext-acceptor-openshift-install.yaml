@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: ext-acceptor-svc
+spec:
+  ports:
+    - protocol: TCP
+      port: 61626
+      targetPort: 61626
+  selector:
+    cluster: jdbc-ha
+  type: ClusterIP
+  sessionAffinity: None
+  publishNotReadyAddresses: true
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ext-acceptor-svc-rte
+spec:
+  port:
+    targetPort: 61626
+  tls:
+    termination: passthrough 
+    insecureEdgeTerminationPolicy: None 
+  to:
+    kind: Service
+    name: ext-acceptor-svc
