@@ -11,7 +11,7 @@ rm -rf workspace/apache-artemis-2.32.0-bin*
 
 ## Minikube
 ```
-minikube start
+minikube start --cpus 4 --memory 8192
 minikube addons enable ingress
 minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
 minikube dashboard
@@ -49,21 +49,21 @@ kubectl apply -f oracle-jdbc-shared-store/activemq-artemis-install.yaml
 
 ## Hosts
 ```
-sudo echo "${minikube ip} ext-acceptor-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
-sudo echo "${minikube ip} primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
-sudo echo "${minikube ip} primary-broker-wconsj-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
-sudo echo "${minikube ip} backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
-sudo echo "${minikube ip} backup-broker-wconsj-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
+sudo echo "$(minikube ip) ext-acceptor-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
+sudo echo "$(minikube ip) primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
+sudo echo "$(minikube ip) primary-broker-wconsj-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
+sudo echo "$(minikube ip) backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
+sudo echo "$(minikube ip) backup-broker-wconsj-0-svc-ing-default.apps.artemiscloud.io" >> /etc/hosts
 ```
 
 ## Producer
 ```
-workspace/apache-artemis-2.32.0/bin/artemis producer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url 'tcp://ext-acceptor-svc-ing-default.apps.artemiscloud.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
+workspace/apache-artemis-2.32.0/bin/artemis producer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url 'tcp://ext-acceptor-svc-ing-default.apps.artemiscloud.io:443?sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
 ```
 
 ## Consumer
 ```
-workspace/apache-artemis-2.32.0/bin/artemis consumer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url 'tcp://ext-acceptor-svc-ing-default.apps.artemiscloud.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
+workspace/apache-artemis-2.32.0/bin/artemis consumer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url 'tcp://ext-acceptor-svc-ing-default.apps.artemiscloud.io:443?sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
 ```
 
 ## Test
@@ -76,11 +76,11 @@ kubectl delete ActiveMQArtemis backup-broker
 
 kubectl apply -f oracle-jdbc-shared-store/activemq-artemis-install.yaml
 
-workspace/apache-artemis-2.32.0/bin/artemis check queue --name TEST --produce 1000 --browse 1000 --consume 1000 --url 'tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443?name=artemis&useTopologyForLoadBalancing=false&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass'
+workspace/apache-artemis-2.32.0/bin/artemis check queue --name TEST --produce 1000 --browse 1000 --consume 1000 --url 'tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443?name=artemis&useTopologyForLoadBalancing=false&sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass'
 
-workspace/apache-artemis-2.32.0/bin/artemis check queue --name TEST --produce 1000 --browse 1000 --consume 1000 --url 'tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443?name=artemis&useTopologyForLoadBalancing=false&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass'
+workspace/apache-artemis-2.32.0/bin/artemis check queue --name TEST --produce 1000 --browse 1000 --consume 1000 --url 'tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443?name=artemis&useTopologyForLoadBalancing=false&sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass'
 
-workspace/apache-artemis-2.32.0/bin/artemis producer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url '(tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443,tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443)?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
+workspace/apache-artemis-2.32.0/bin/artemis producer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url '(tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443,tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443)?sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
 
-workspace/apache-artemis-2.32.0/bin/artemis consumer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url '(tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443,tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443)?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
+workspace/apache-artemis-2.32.0/bin/artemis consumer --verbose --destination queue://TEST --user admin --password admin --protocol core --sleep 1000 --url '(tcp://primary-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443,tcp://backup-broker-ext-acceptor-0-svc-ing-default.apps.artemiscloud.io:443)?sslEnabled=true&verifyHost=false&trustStorePath=workspace/server-ca-truststore.jks&trustStorePassword=securepass&useTopologyForLoadBalancing=false&initialConnectAttempts=-1&failoverAttempts=-1'
 ```
