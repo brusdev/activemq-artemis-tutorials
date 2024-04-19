@@ -5,10 +5,9 @@ metadata:
 spec:
   deploymentPlan:
     size: 1
-    persistenceEnabled: true
   env:
     - name: ARTEMIS_EXTRA_LIBS
-      value: '/opt/broker/data/extra-libs'
+      value: '/amq/init/config/extra-libs'
   brokerProperties:
     - 'storeConfiguration=DATABASE'
     - 'storeConfiguration.jdbcDriverClassName=org.postgresql.Driver'
@@ -18,10 +17,12 @@ spec:
     protocols: CORE
     port: 61626
     expose: true
+    exposeMode: ingress
     sslEnabled: true
     sslSecret: ext-acceptor-ssl-secret
   console:
     expose: true
+  ingressDomain: brus.dev
   resourceTemplates:
     - selector:
         kind: StatefulSet
@@ -32,11 +33,13 @@ spec:
             spec:
               initContainers:
                 - name: postgresql-jdbc-driver-init
-                  image: quay.io/artemiscloud/activemq-artemis-broker-init:artemis.2.32.0
+                  image: alpine:latest
+                  securityContext:
+                    runAsUser: 185
                   volumeMounts:
-                    - name: broker
-                      mountPath: /opt/broker/data
+                    - name: amq-cfg-dir
+                      mountPath: /amq/init/config
                   command:
-                    - "bash"
+                    - "sh"
                     - "-c"
-                    - "mkdir -p /opt/broker/data/extra-libs && test -f /opt/broker/data/extra-libs/postgresql-42.7.1.jar || curl -Lo /opt/broker/data/extra-libs/postgresql-42.7.1.jar https://jdbc.postgresql.org/download/postgresql-42.7.1.jar"
+                    - "mkdir -p /amq/init/config/extra-libs && wget -O /amq/init/config/extra-libs/postgresql-42.7.1.jar https://jdbc.postgresql.org/download/postgresql-42.7.1.jar"
