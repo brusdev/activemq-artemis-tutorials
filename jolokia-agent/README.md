@@ -35,3 +35,9 @@ workspace/broker-with-jolokia-agent/bin/artemis run
 ```
 curl -v -H "Origin: http://localhost" -u admin:admin http://localhost:8778/jolokia/read/org.apache.activemq.artemis:broker=%220.0.0.0%22/Status
 ```
+
+## Generate the broker configuration as properties and peek at them
+```
+curl -v -H "Origin: http://localhost" -u admin:admin http://localhost:8778/jolokia/exec/org.apache.activemq.artemis:broker=%220.0.0.0%22/exportConfigAsProperties
+cat workspace/broker-with-jolokia-agent/tmp/broker_config_as_properties.txt
+```
