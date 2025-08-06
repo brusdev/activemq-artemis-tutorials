@@ -1,0 +1,25 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata: 
+  name: broker
+spec:
+  deploymentPlan:
+    size: 1
+    extraMounts:
+      secrets:
+        - keycloak-ssl-secret
+        - keycloak-jaas-config
+  env:
+    - name: JAVA_ARGS_APPEND
+      value: '-Djava.security.debug=logincontext'
+  acceptors:
+  - name: ext-acceptor
+    protocols: CORE
+    port: 61626
+    expose: true
+    exposeMode: ingress
+    sslEnabled: true
+    sslSecret: ext-acceptor-ssl-secret
+  console:
+    expose: true
+  ingressDomain: brus.dev

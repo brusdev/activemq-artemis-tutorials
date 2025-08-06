@@ -1,0 +1,57 @@
+{
+  "realm": "artemis",
+  "registrationAllowed": true,
+  "enabled": true,
+  "sslRequired": "all",
+  "clients": [
+    {
+      "enabled": true,
+      "clientId": "artemis-direct",
+      "clientAuthenticatorType" : "client-secret",
+      "secret" : "9699685c-8a30-45cf-bf19-0d38bbac5fdc",
+      "protocol" : "openid-connect",
+      "bearerOnly": false,
+      "standardFlowEnabled" : false,
+      "implicitFlowEnabled" : false,
+      "directAccessGrantsEnabled": true,
+      "publicClient": true
+    }
+  ],
+  "roles" : {
+    "client" : {
+      "artemis-direct" : [
+        {
+          "name" : "admin",
+          "composite" : false,
+          "clientRole" : true,
+          "attributes" : { }
+        }
+      ]
+    }
+  },
+  "users": [
+    {
+      "enabled": true,
+      "username": "jdoe",
+      "emailVerified": true,
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "jdoe@keycloak.io",
+      "credentials": [
+        {
+          "type": "password",
+          "hashedSaltedValue": "KMO2OT3x4Qjh8FVeQckagXfg1DuktazFPLnPU1loEfg=",
+          "salt": "cGjYhYoChS9e5hEw+5WuLw==",
+          "hashIterations": 27500,
+          "algorithm": "pbkdf2-sha256"
+        }
+      ],
+      "requiredActions": [],
+      "realmRoles": ["user"],
+      "clientRoles" : {
+        "artemis-direct" : [ "admin" ],
+        "account" : [ "manage-account", "view-profile" ]
+      }
+    }
+  ]
+}

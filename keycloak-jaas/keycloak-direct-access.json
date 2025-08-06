@@ -1,0 +1,13 @@
+{
+  "realm": "artemis",
+  "resource": "artemis-direct",
+  "auth-server-url": "https://keycloak-service.keycloak-jaas.svc.cluster.local:8443",
+  "use-resource-role-mappings": true,
+  "principal-attribute": "preferred_username",
+  "ssl-required": "external",
+  "truststore": "/amq/extra/secrets/keycloak-ssl-secret/keycloak-truststore.p12",
+  "truststore-password": "keycloak",
+  "credentials": {
+    "secret": "9699685c-8a30-45cf-bf19-0d38bbac5fdc"
+  }
+}

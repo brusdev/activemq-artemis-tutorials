@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-deployment
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      volumes:
+        - name: keycloak-import-secret-volume
+          secret:
+            secretName: keycloak-import-secret
+        - name: keycloak-ssl-secret-volume
+          secret:
+            secretName: keycloak-ssl-secret
+      containers:
+        - name: keycloak-container
+          image: quay.io/keycloak/keycloak:26.3
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: admin
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              value: admin
+          command:
+            - "/opt/keycloak/bin/kc.sh"
+            - "start-dev"
+            - "--verbose"
+            - "--https-certificate-file=/opt/keycloak/certs/keycloak-cert.pem"
+            - "--https-certificate-key-file=/opt/keycloak/certs/keycloak-key.pem"
+            - "--import-realm"
+          volumeMounts:
+            - name: keycloak-import-secret-volume
+              readOnly: true
+              mountPath: "/opt/keycloak/data/import"
+            - name: keycloak-ssl-secret-volume
+              readOnly: true
+              mountPath: "/opt/keycloak/certs"
+          ports:
+            - containerPort: 8443
+          readinessProbe:
+            tcpSocket:
+              port: 8443
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-service
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: keycloak-port
+      protocol: TCP
+      port: 8443
+      targetPort: 8443
